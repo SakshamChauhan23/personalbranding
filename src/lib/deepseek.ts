@@ -1,0 +1,102 @@
+import OpenAI from 'openai'
+import { geminiRateLimiter, geminiDailyLimiter } from './rate-limiter'
+
+// DeepSeek uses OpenAI-compatible API
+const deepseek = new OpenAI({
+    apiKey: process.env.DEEPSEEK_API_KEY!,
+    baseURL: 'https://api.deepseek.com'
+})
+
+export async function generateContent(prompt: string) {
+    const response = await deepseek.chat.completions.create({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7
+    })
+    return response.choices[0].message.content || ''
+}
+
+export async function generateJSON(prompt: string, preferredModel?: string) {
+    const apiKey = process.env.DEEPSEEK_API_KEY
+    if (!apiKey) {
+        throw new Error("DEEPSEEK_API_KEY is not set in environment variables")
+    }
+
+    // Check rate limits BEFORE making API call
+    const minuteLimit = await geminiRateLimiter.checkLimit('deepseek-api')
+    if (!minuteLimit.allowed) {
+        console.error(`⏱️ Rate limit exceeded. Retry after ${minuteLimit.retryAfter}s`)
+        throw new Error(`Rate limit exceeded. Please wait ${minuteLimit.retryAfter} seconds before trying again.`)
+    }
+
+    const dailyLimit = await geminiDailyLimiter.checkLimit()
+    if (!dailyLimit.allowed) {
+        const hours = Math.floor(dailyLimit.retryAfter! / 3600)
+        console.error(`📊 Daily quota exhausted. Retry after ${hours}h`)
+        throw new Error(`Daily API quota exhausted. Resets in ${hours} hours.`)
+    }
+
+    console.log('📊 Quota usage:', geminiDailyLimiter.getUsage())
+
+    const modelName = preferredModel || 'deepseek-chat'
+
+    try {
+        console.log(`🤖 Attempting DeepSeek: ${modelName}`)
+
+        const response = await deepseek.chat.completions.create({
+            model: modelName,
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are a helpful assistant that returns valid JSON only. Never include explanations or markdown formatting. Always return pure JSON.'
+                },
+                {
+                    role: 'user',
+                    content: prompt + '\n\nReturn valid JSON only. No markdown, no explanations, just raw JSON.'
+                }
+            ],
+            temperature: 0.7,
+            response_format: { type: 'json_object' }
+        })
+
+        const text = response.choices[0].message.content || ''
+
+        // Log the full response for debugging
+        console.log("📄 DeepSeek Response length:", text.length)
+        console.log("📄 DeepSeek Response preview:", text.substring(0, 300))
+
+        if (!text || text.trim().length === 0) {
+            console.error("❌ Empty response from DeepSeek")
+            throw new Error("AI returned empty response")
+        }
+
+        // DeepSeek with json_object mode returns clean JSON
+        const cleanedText = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+
+        // Try to extract JSON object or array
+        const jsonObjectMatch = cleanedText.match(/\{[\s\S]*\}/)
+        const jsonArrayMatch = cleanedText.match(/\[[\s\S]*\]/)
+
+        const jsonString = jsonArrayMatch ? jsonArrayMatch[0] : (jsonObjectMatch ? jsonObjectMatch[0] : cleanedText)
+
+        try {
+            const parsed = JSON.parse(jsonString)
+            console.log("✅ JSON parsed successfully")
+            return parsed
+        } catch (e) {
+            console.error("JSON parse failed. Raw response (first 800 chars):", text.substring(0, 800))
+            throw new Error("Invalid JSON response from AI")
+        }
+
+    } catch (e: any) {
+        console.error(`❌ DeepSeek failed:`, e)
+        console.error('Full error:', e.message)
+
+        // Check if it's a quota/balance error and include status in message
+        if (e.status === 402 || e.code === '402' || e.message?.includes('402')) {
+            throw new Error(`402 Insufficient Balance: ${e.message || 'DeepSeek API quota exceeded'}`)
+        }
+
+        throw e
+    }
+}

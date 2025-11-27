@@ -1,6 +1,6 @@
 # SocialRipple (LinkedIn)
 
-AI-powered LinkedIn content engine for CXOs.
+Social Media Manager Command Center for managing multiple CXO clients at scale.
 
 ## Features
 - **Onboarding**: Capture client goals and tone.
