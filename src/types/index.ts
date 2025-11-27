@@ -10,9 +10,9 @@ export interface Client {
     role?: string
     target_audience?: string
     approval_email?: string
-    brand_colors?: any
+    brand_colors?: { primary: string; secondary: string }
     logo_url?: string
-    onboarding_data?: any
+    onboarding_data?: Record<string, unknown>
     company_name?: string
     company_linkedin_url?: string
     created_at: string
@@ -68,6 +68,6 @@ export interface ContentScript {
     hashtags: string[]
     version: number
     status: 'draft' | 'approved'
-    draft_data?: any
+    draft_data?: Record<string, unknown>
     created_at: string
 }

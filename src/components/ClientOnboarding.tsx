@@ -336,7 +336,7 @@ export default function ClientOnboarding() {
                                 placeholder="client@company.com"
                             />
                             <p className="text-xs text-gray-500 mt-2">
-                                We will send "Approve / Request Changes" emails to this address. The client does not need to log in.
+                                We will send &quot;Approve / Request Changes&quot; emails to this address. The client does not need to log in.
                             </p>
                         </div>
 

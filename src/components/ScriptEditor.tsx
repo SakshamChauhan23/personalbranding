@@ -142,8 +142,8 @@ export default function ScriptEditor({
         if (!script?.draft_data) return
 
         const newText = tone === 'conversational'
-            ? script.draft_data.conversational_version
-            : script.draft_data.formal_version
+            ? script.draft_data['conversational_version'] as string
+            : script.draft_data['formal_version'] as string
 
         if (newText) {
             setSelectedTone(tone)
@@ -249,7 +249,7 @@ export default function ScriptEditor({
     }
 
     const isApproved = script?.status === 'approved'
-    const isCarousel = script?.draft_data?.carousel_slides && script.draft_data.carousel_slides.length > 0
+    const isCarousel = script?.draft_data?.['carousel_slides'] && (script.draft_data['carousel_slides'] as any[]).length > 0
 
     return (
         <div className="grid gap-8 lg:grid-cols-3">

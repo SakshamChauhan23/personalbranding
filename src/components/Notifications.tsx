@@ -23,6 +23,23 @@ export default function Notifications() {
     const router = useRouter()
 
     useEffect(() => {
+        const fetchNotifications = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            const { data } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(10)
+
+            if (data) {
+                setNotifications(data)
+                setUnreadCount(data.filter(n => !n.is_read).length)
+            }
+        }
+
         fetchNotifications()
 
         // Subscribe to new notifications
@@ -42,24 +59,7 @@ export default function Notifications() {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [])
-
-    const fetchNotifications = async () => {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-
-        const { data } = await supabase
-            .from('notifications')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(10)
-
-        if (data) {
-            setNotifications(data)
-            setUnreadCount(data.filter(n => !n.is_read).length)
-        }
-    }
+    }, [supabase])
 
     const markAsRead = async () => {
         if (unreadCount === 0) return

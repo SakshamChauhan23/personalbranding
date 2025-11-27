@@ -126,7 +126,7 @@ export default function FeedbackPage() {
         )
     }
 
-    // @ts-ignore - Supabase join types are tricky
+    // @ts-expect-error - Supabase types are tricky with joins
     const clientBrand = post.clients?.brand_colors || { primary: '#4F46E5' }
 
     return (

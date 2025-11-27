@@ -149,7 +149,7 @@ export default function CalendarGrid({ initialItems, clientId }: { initialItems:
 
     const updateStatus = async (id: string, status: 'approved' | 'rejected' | 'pending') => {
         try {
-            const updates: any = { status }
+            const updates: Partial<ContentCalendarItem> = { status }
 
             // If approving a brief, automatically move to content stage
             if (status === 'approved') {
@@ -261,7 +261,7 @@ export default function CalendarGrid({ initialItems, clientId }: { initialItems:
 
     // Editing State
     const [isEditingPost, setIsEditingPost] = useState(false)
-    const [editPostData, setEditPostData] = useState<any>(null)
+    const [editPostData, setEditPostData] = useState<ContentCalendarItem | null>(null)
 
     const handleUpdatePost = async () => {
         if (!editPostData) return
@@ -288,9 +288,9 @@ export default function CalendarGrid({ initialItems, clientId }: { initialItems:
             setIsEditingPost(false)
             setEditPostData(null)
             // Keep the modal open but exit edit mode
-        } catch (error: any) {
+        } catch (error) {
             console.error('Update Post Error:', error)
-            alert('Failed to update post: ' + (error.message || 'Unknown error'))
+            alert('Failed to update post: ' + ((error as Error).message || 'Unknown error'))
         } finally {
             setLoading(false)
         }
@@ -366,9 +366,9 @@ export default function CalendarGrid({ initialItems, clientId }: { initialItems:
                 media_url: '',
                 scheduled_time: '09:00'
             })
-        } catch (error: any) {
+        } catch (error) {
             console.error('Create Post Error:', JSON.stringify(error, null, 2))
-            alert('Failed to create post: ' + (error.message || error.error_description || 'Unknown error'))
+            alert('Failed to create post: ' + ((error as any).message || (error as any).error_description || 'Unknown error'))
         } finally {
             setLoading(false)
         }
@@ -777,7 +777,7 @@ export default function CalendarGrid({ initialItems, clientId }: { initialItems:
                                         <MessageSquare className="w-5 h-5 text-indigo-400" />
                                         Request Changes
                                     </h3>
-                                    <p className="text-sm text-gray-400">Tell the AI what to improve (e.g., "Make it more professional", "Focus on leadership", "Change format to story")</p>
+                                    <p className="text-sm text-gray-400">Tell the AI what to improve (e.g., &quot;Make it more professional&quot;, &quot;Focus on leadership&quot;, &quot;Change format to story&quot;)</p>
                                     <textarea
                                         value={revisionFeedback}
                                         onChange={(e) => setRevisionFeedback(e.target.value)}
@@ -804,7 +804,7 @@ export default function CalendarGrid({ initialItems, clientId }: { initialItems:
                             ) : (
                                 <>
                                     {/* Edit Mode */}
-                                    {isEditingPost ? (
+                                    {isEditingPost && editPostData ? (
                                         <div className="space-y-4">
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
@@ -812,7 +812,7 @@ export default function CalendarGrid({ initialItems, clientId }: { initialItems:
                                                     <input
                                                         type="date"
                                                         value={editPostData.scheduled_date}
-                                                        onChange={(e) => setEditPostData({ ...editPostData, scheduled_date: e.target.value })}
+                                                        onChange={(e) => setEditPostData(prev => prev ? { ...prev, scheduled_date: e.target.value } : null)}
                                                         className="w-full bg-slate-950 border border-gray-800 rounded-lg p-3 text-white"
                                                     />
                                                 </div>
@@ -821,7 +821,7 @@ export default function CalendarGrid({ initialItems, clientId }: { initialItems:
                                                     <input
                                                         type="time"
                                                         value={editPostData.scheduled_time || '09:00'}
-                                                        onChange={(e) => setEditPostData({ ...editPostData, scheduled_time: e.target.value })}
+                                                        onChange={(e) => setEditPostData(prev => prev ? { ...prev, scheduled_time: e.target.value } : null)}
                                                         className="w-full bg-slate-950 border border-gray-800 rounded-lg p-3 text-white"
                                                     />
                                                 </div>
@@ -831,7 +831,7 @@ export default function CalendarGrid({ initialItems, clientId }: { initialItems:
                                                 <input
                                                     type="text"
                                                     value={editPostData.title}
-                                                    onChange={(e) => setEditPostData({ ...editPostData, title: e.target.value })}
+                                                    onChange={(e) => setEditPostData(prev => prev ? { ...prev, title: e.target.value } : null)}
                                                     className="w-full bg-slate-950 border border-gray-800 rounded-lg p-3 text-white"
                                                 />
                                             </div>
@@ -839,7 +839,7 @@ export default function CalendarGrid({ initialItems, clientId }: { initialItems:
                                                 <label className="block text-sm font-medium text-gray-400 mb-1">Brief</label>
                                                 <textarea
                                                     value={editPostData.brief}
-                                                    onChange={(e) => setEditPostData({ ...editPostData, brief: e.target.value })}
+                                                    onChange={(e) => setEditPostData(prev => prev ? { ...prev, brief: e.target.value } : null)}
                                                     className="w-full h-32 bg-slate-950 border border-gray-800 rounded-lg p-3 text-white"
                                                 />
                                             </div>
@@ -898,7 +898,7 @@ export default function CalendarGrid({ initialItems, clientId }: { initialItems:
                                                     <div className="space-y-4">
                                                         {selectedItem.feedback_entries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((entry) => (
                                                             <div key={entry.id} className="bg-slate-950/50 p-4 rounded-lg border border-yellow-500/20">
-                                                                <p className="text-gray-300 text-sm mb-2">"{entry.content}"</p>
+                                                                <p className="text-gray-300 text-sm mb-2">&quot;{entry.content}&quot;</p>
                                                                 <p className="text-xs text-gray-500">
                                                                     {new Date(entry.created_at).toLocaleString()}
                                                                 </p>
@@ -957,9 +957,9 @@ export default function CalendarGrid({ initialItems, clientId }: { initialItems:
                                                                     } else {
                                                                         alert('Email sent successfully!')
                                                                     }
-                                                                } catch (error: any) {
+                                                                } catch (error) {
                                                                     console.error('Error sending for approval:', error)
-                                                                    alert('Failed to send for approval: ' + error.message)
+                                                                    alert('Failed to send for approval: ' + (error as Error).message)
                                                                 } finally {
                                                                     setLoading(false)
                                                                 }
