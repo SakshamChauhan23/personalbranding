@@ -94,20 +94,24 @@ export async function generateJSON(prompt: string, preferredModel?: string) {
             const parsed = JSON.parse(jsonString)
             console.log("✅ JSON parsed successfully")
             return parsed
-        } catch (e) {
+        } catch {
             console.error("JSON parse failed. Raw response (first 800 chars):", text.substring(0, 800))
             throw new Error("Invalid JSON response from AI")
         }
 
-    } catch (e: any) {
-        console.error(`❌ DeepSeek failed:`, e)
-        console.error('Full error:', e.message)
+    } catch (error: unknown) {
+        console.error(`❌ DeepSeek failed:`, error)
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        console.error('Full error:', errorMessage)
 
         // Check if it's a quota/balance error and include status in message
-        if (e.status === 402 || e.code === '402' || e.message?.includes('402')) {
-            throw new Error(`402 Insufficient Balance: ${e.message || 'DeepSeek API quota exceeded'}`)
+        const status = (error as { status?: number })?.status
+        const code = (error as { code?: string })?.code
+
+        if (status === 402 || code === '402' || errorMessage.includes('402')) {
+            throw new Error(`402 Insufficient Balance: ${errorMessage || 'DeepSeek API quota exceeded'}`)
         }
 
-        throw e
+        throw error
     }
 }
