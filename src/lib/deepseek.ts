@@ -2,13 +2,23 @@ import OpenAI from 'openai'
 import { geminiRateLimiter, geminiDailyLimiter } from './rate-limiter'
 
 // DeepSeek uses OpenAI-compatible API
-const deepseek = new OpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY!,
-    baseURL: 'https://api.deepseek.com'
-})
+let deepseek: OpenAI | null = null
+
+const getDeepSeekClient = () => {
+    if (!deepseek) {
+        const apiKey = process.env.DEEPSEEK_API_KEY
+        if (!apiKey) throw new Error("DEEPSEEK_API_KEY is not set")
+        deepseek = new OpenAI({
+            apiKey,
+            baseURL: 'https://api.deepseek.com'
+        })
+    }
+    return deepseek
+}
 
 export async function generateContent(prompt: string) {
-    const response = await deepseek.chat.completions.create({
+    const client = getDeepSeekClient()
+    const response = await client.chat.completions.create({
         model: 'deepseek-chat',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7
@@ -43,7 +53,8 @@ export async function generateJSON(prompt: string, preferredModel?: string) {
     try {
         console.log(`🤖 Attempting DeepSeek: ${modelName}`)
 
-        const response = await deepseek.chat.completions.create({
+        const client = getDeepSeekClient()
+        const response = await client.chat.completions.create({
             model: modelName,
             messages: [
                 {

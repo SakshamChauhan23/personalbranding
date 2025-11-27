@@ -1,10 +1,20 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { geminiRateLimiter, geminiDailyLimiter } from './rate-limiter'
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+let genAI: GoogleGenerativeAI | null = null
+
+const getGenAIClient = () => {
+    if (!genAI) {
+        const apiKey = process.env.GEMINI_API_KEY
+        if (!apiKey) throw new Error("GEMINI_API_KEY is not set")
+        genAI = new GoogleGenerativeAI(apiKey)
+    }
+    return genAI
+}
 
 export async function generateContent(prompt: string) {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const client = getGenAIClient()
+    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' })
     const result = await model.generateContent(prompt)
     const response = await result.response
     return response.text()
@@ -51,7 +61,8 @@ export async function generateJSON(prompt: string, preferredModel?: string) {
     for (const modelName of modelsToTry) {
         try {
             console.log(`🤖 Attempting: ${modelName}`)
-            const model = genAI.getGenerativeModel({
+            const client = getGenAIClient()
+            const model = client.getGenerativeModel({
                 model: modelName as string,
                 generationConfig: {
                     temperature: 0.7,
@@ -72,8 +83,8 @@ export async function generateJSON(prompt: string, preferredModel?: string) {
                     }
 
                     const isRetryable = e.message?.includes('503') ||
-                                       e.message?.includes('overloaded') ||
-                                       e.message?.includes('500');
+                        e.message?.includes('overloaded') ||
+                        e.message?.includes('500');
 
                     if (isRetryable && attempt < 1) {
                         console.log(`⚠️ ${modelName} busy. Retry ${attempt + 1}/2`)

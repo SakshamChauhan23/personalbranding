@@ -1,12 +1,20 @@
 import OpenAI from 'openai'
 import { geminiRateLimiter, geminiDailyLimiter } from './rate-limiter'
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY!
-})
+let openai: OpenAI | null = null
+
+const getOpenAIClient = () => {
+    if (!openai) {
+        const apiKey = process.env.OPENAI_API_KEY
+        if (!apiKey) throw new Error("OPENAI_API_KEY is not set")
+        openai = new OpenAI({ apiKey })
+    }
+    return openai
+}
 
 export async function generateContent(prompt: string) {
-    const response = await openai.chat.completions.create({
+    const client = getOpenAIClient()
+    const response = await client.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7
@@ -50,7 +58,8 @@ export async function generateJSON(prompt: string, preferredModel?: string) {
         try {
             console.log(`🤖 Attempting OpenAI: ${modelName}`)
 
-            const response = await openai.chat.completions.create({
+            const client = getOpenAIClient()
+            const response = await client.chat.completions.create({
                 model: modelName,
                 messages: [
                     {
